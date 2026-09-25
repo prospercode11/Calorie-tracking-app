@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Icon } from './components/Icon'
 import { today, type DayKey } from './lib/date'
 import { actions, useStore } from './lib/store'
+import { supabase, useSync } from './lib/sync'
+import { AuthScreen } from './screens/Auth'
 import { Dashboard } from './screens/Dashboard'
 import { FoodLog } from './screens/FoodLog'
 import { ExpenditureScreen, WeightScreen } from './screens/Insights'
@@ -21,8 +23,20 @@ export interface Nav {
   sheet: (s: SheetSpec) => void
 }
 
+const LOCAL_MODE_KEY = 'fuelwise:local-mode'
+
+function readLocalMode(): boolean {
+  try {
+    return localStorage.getItem(LOCAL_MODE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export default function App() {
   const state = useStore()
+  const sync = useSync()
+  const [localMode, setLocalMode] = useState(readLocalMode)
   const [tab, setTab] = useState<Tab>('dashboard')
   const [stack, setStack] = useState<Route[]>([])
   const [sheet, setSheet] = useState<SheetSpec | null>(null)
@@ -55,6 +69,22 @@ export default function App() {
     sheet: setSheet,
   }
 
+  if (supabase && !sync.ready) return null
+  if (supabase && !sync.session && !localMode) {
+    return (
+      <AuthScreen
+        onSkip={() => {
+          try {
+            localStorage.setItem(LOCAL_MODE_KEY, '1')
+          } catch {
+            // Private mode: the choice lasts for this visit only.
+          }
+          setLocalMode(true)
+        }}
+      />
+    )
+  }
+  if (sync.status === 'loading') return <div className="empty" style={{ paddingTop: '40vh' }}>Loading your data…</div>
   if (!state.onboarded) return <Onboarding />
 
   const route = stack[stack.length - 1]

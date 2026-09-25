@@ -53,14 +53,13 @@ export function getState(): AppState {
   return state
 }
 
+export function subscribe(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
 export function useStore(): AppState {
-  return useSyncExternalStore(
-    (l) => {
-      listeners.add(l)
-      return () => listeners.delete(l)
-    },
-    () => state,
-  )
+  return useSyncExternalStore(subscribe, () => state)
 }
 
 export function uid(): string {
