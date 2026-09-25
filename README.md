@@ -28,7 +28,7 @@ It's an independent project with its own name and look. It isn't affiliated with
 - **Onboarding** gives a starting estimate from Mifflin–St Jeor, or Katch–McArdle if you enter a body-fat %. You can also explore with demo data.
 - **More** has units (kg or lb), theme (system, light or dark), week start, your profile, and your custom foods. It also has JSON export and import, a demo-data loader, and reset.
 
-All data stays in the browser's `localStorage`. There's no account or server.
+**Accounts and sync:** sign in with an email and password and your data syncs to Supabase, so it's on every device you use. You can also choose "Use without an account", which keeps everything in this browser's `localStorage` only.
 
 ## How the coaching works (`src/lib/nutrition.ts`)
 
@@ -43,10 +43,19 @@ All data stays in the browser's `localStorage`. There's no account or server.
   - Fat is a share of calories that depends on the diet style; carbs make up the rest. Keto fixes carbs at 30 g.
 - **Check-ins** happen weekly on your chosen day and record new targets from that day onward.
 
+## Hosting
+
+- **App:** Vercel project `fuelwise`, live at https://fuelwise-pink.vercel.app. Every push to the production branch redeploys it.
+- **Data:** Supabase project `fuelwise` (`zuijnrtzxhbfzvlrgmxj`). Its tables are `profiles`, `foods`, `log_entries`, `weights` and `targets_history`. Row-level security limits every row to the user who owns it.
+- **Environment variables:** `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are set in Vercel; see `.env.example`. The publishable key is designed to be used in the browser. If they're left unset, the app runs local-only.
+
+How sync works (`src/lib/sync.ts`): the app keeps using its local store for everything on screen. Shortly after each change, it compares the store with the last copy it saved to Supabase and writes or deletes only the rows that changed. If a save fails, it retries. The first time you sign in, anything already on the device is uploaded. Signing in again later loads your account's data. The app reloads from the server when you switch back to its tab, and signing out clears the device.
+
 ## Development
 
 ```bash
 npm install
+cp .env.example .env.local   # optional: fill in Supabase values to enable sign-in
 npm run dev        # http://localhost:5173
 npm test           # algorithm unit tests (vitest)
 npm run build      # typecheck + production build
